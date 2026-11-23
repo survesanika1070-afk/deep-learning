@@ -1,38 +1,165 @@
-import os
 import streamlit as st
-from dotenv import load_dotenv
-from google import genai
+from rag import ask_football_question
 
-# Load environment variables
-load_dotenv()
 
-# Get API key
-api_key = os.getenv("GOOGLE_API_KEY")
+# =========================
+# PAGE CONFIG
+# =========================
 
-# Connect to Gemini
-client = genai.Client(api_key=api_key)
-
-# Streamlit page
 st.set_page_config(
-    page_title="GenAI Chatbot",
-    page_icon="🤖"
+    page_title="FootballAI",
+    page_icon="🏆",
+    layout="wide"
 )
 
-st.title("🤖 My Generative AI Chatbot")
-st.write("Ask me anything!")
 
-# User input
-question = st.text_input("Enter your question:")
+# =========================
+# CUSTOM CSS
+# =========================
 
-# Generate answer
-if st.button("Ask"):
-    if question:
-        response = client.models.generate_content(
-            model="gemini-3.6-flash",
-            contents=question
-        )
+st.markdown("""
+<style>
 
-        st.write("### 🤖 AI Response")
-        st.write(response.text)
-    else:
-        st.warning("Please enter a question.")
+.main-title {
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+}
+
+.subtitle {
+    text-align: center;
+    color: #777;
+    font-size: 18px;
+    margin-bottom: 30px;
+}
+
+.chat-box {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+
+# =========================
+# HEADER
+# =========================
+
+st.markdown(
+    '<div class="main-title">🏆 FootballAI</div>',
+    unsafe_allow_html=True
+)
+
+st.markdown(
+    '<div class="subtitle">Your Generative AI Football Assistant</div>',
+    unsafe_allow_html=True
+)
+
+
+# =========================
+# SESSION HISTORY
+# =========================
+
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+
+# =========================
+# SIDEBAR
+# =========================
+
+with st.sidebar:
+
+    st.title("Football AI Chatbot ⚽")
+
+    st.write(
+        "Ask questions about football"
+    )
+
+    st.divider()
+
+    if st.button("🗑️ Clear Chat"):
+
+        st.session_state.messages = []
+
+        st.rerun()
+
+
+# =========================
+# DISPLAY CHAT HISTORY
+# =========================
+
+for message in st.session_state.messages:
+
+    with st.chat_message(message["role"]):
+
+        st.markdown(message["content"])
+
+
+# =========================
+# USER INPUT
+# =========================
+
+question = st.chat_input(
+    "Ask me a football question..."
+)
+
+
+if question:
+
+    # =========================
+    # SHOW USER MESSAGE
+    # =========================
+
+    with st.chat_message("user"):
+
+        st.markdown(question)
+
+    st.session_state.messages.append(
+        {
+            "role": "user",
+            "content": question
+        }
+    )
+
+
+    # =========================
+    # GENERATE RESPONSE
+    # =========================
+
+    with st.chat_message("assistant"):
+
+        with st.spinner(
+            "🏆 FootballAI is thinking..."
+        ):
+
+            try:
+
+                answer = ask_football_question(
+                    question
+                )
+
+                st.markdown(answer)
+
+            except Exception as e:
+
+                answer = (
+                    "Sorry, something went wrong. "
+                    "Please try again."
+                )
+
+                st.error(str(e))
+
+
+    # =========================
+    # SAVE ASSISTANT RESPONSE
+    # =========================
+
+    st.session_state.messages.append(
+        {
+            "role": "assistant",
+            "content": answer
+        }
+    )
